@@ -187,7 +187,7 @@ describe('EnterLeaveEventPlugin', () => {
   });
 
   // Test for https://github.com/facebook/react/issues/19419
-  it('should fire native mouseenter when moving from disabled sibling inside a component', done => {
+  fit('should fire synthetic mouseenter when moving from disabled sibling inside a component', done => {
     const syntheticMouseEnter = jest.fn();
     const nativeMouseEnter = jest.fn();
 
@@ -215,6 +215,13 @@ describe('EnterLeaveEventPlugin', () => {
 
       componentDidMount() {
         this.targetDiv.current.addEventListener('mouseenter', nativeMouseEnter);
+        this.targetDiv.current.dispatchEvent(
+          new MouseEvent('mouseenter', {
+            bubbles: true,
+            cancelable: true,
+            relatedTarget: this.disabledButton.current,
+          }),
+        );
         this.disabledButton.current.dispatchEvent(
           new MouseEvent('mouseout', {
             bubbles: true,
@@ -223,10 +230,19 @@ describe('EnterLeaveEventPlugin', () => {
           }),
         );
 
-        // check our setup to ensure it's only the native event failing in the issue
-        expect(syntheticMouseEnter.mock.calls.length).toBe(1);
-        // test for bug in the issue
+        // native mouse event gets triggered only for the native mouseenter
         expect(nativeMouseEnter.mock.calls.length).toBe(1);
+
+        /**
+         * Why do we expect this to be 2?
+         *
+         * This is a bugfix, so just fixing the bug means leaving usage of
+         * mouseout as Synthetic calculator for mouseenter in place.
+         * A larger discussion should take place over whether a synth event
+         * should be calculated from a different native one.
+         */
+        expect(syntheticMouseEnter.mock.calls.length).toBe(2);
+
         done();
       }
 
