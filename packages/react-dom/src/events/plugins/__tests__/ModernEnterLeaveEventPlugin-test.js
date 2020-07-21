@@ -186,6 +186,63 @@ describe('EnterLeaveEventPlugin', () => {
     ReactDOM.render(<Parent />, container);
   });
 
+  // Test for https://github.com/facebook/react/issues/19419
+  it('should fire native mouseenter when moving from disabled sibling inside a component', done => {
+    const syntheticMouseEnter = jest.fn();
+    const nativeMouseEnter = jest.fn();
+
+    class Parent extends React.Component {
+      constructor(props) {
+        super(props);
+        this.parentEl = React.createRef();
+      }
+
+      componentDidMount() {
+        ReactDOM.render(<MouseEnterDetect />, this.parentEl.current);
+      }
+
+      render() {
+        return <div ref={this.parentEl} />;
+      }
+    }
+
+    class MouseEnterDetect extends React.Component {
+      constructor(props) {
+        super(props);
+        this.disabledButton = React.createRef();
+        this.targetDiv = React.createRef();
+      }
+
+      componentDidMount() {
+        this.targetDiv.current.addEventListener('mouseenter', nativeMouseEnter);
+        this.disabledButton.current.dispatchEvent(
+          new MouseEvent('mouseout', {
+            bubbles: true,
+            cancelable: true,
+            relatedTarget: this.targetDiv.current,
+          }),
+        );
+
+        // check our setup to ensure it's only the native event failing in the issue
+        expect(syntheticMouseEnter.mock.calls.length).toBe(1);
+        // test for bug in the issue
+        expect(nativeMouseEnter.mock.calls.length).toBe(1);
+        done();
+      }
+
+      render() {
+        return (
+          <React.Fragment>
+            <button ref={this.disabledButton} disabled={true} />
+            <div ref={this.targetDiv} onMouseEnter={syntheticMouseEnter} />
+          </React.Fragment>
+        );
+      }
+    }
+
+    ReactDOM.render(<Parent />, container);
+  });
+
   it('should call mouseEnter when pressing a non tracked React node', done => {
     const mockFn = jest.fn();
 
