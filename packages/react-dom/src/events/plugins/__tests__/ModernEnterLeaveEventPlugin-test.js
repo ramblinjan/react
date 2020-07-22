@@ -187,9 +187,8 @@ describe('EnterLeaveEventPlugin', () => {
   });
 
   // Test for https://github.com/facebook/react/issues/19419
-  fit('should fire synthetic mouseenter when moving from disabled sibling inside a component', done => {
+  it('should fire synthetic mouseenter when moving from disabled sibling inside a component', done => {
     const syntheticMouseEnter = jest.fn();
-    const nativeMouseEnter = jest.fn();
 
     class Parent extends React.Component {
       constructor(props) {
@@ -214,14 +213,18 @@ describe('EnterLeaveEventPlugin', () => {
       }
 
       componentDidMount() {
-        this.targetDiv.current.addEventListener('mouseenter', nativeMouseEnter);
-        this.targetDiv.current.dispatchEvent(
-          new MouseEvent('mouseenter', {
+        // this DID WORK before and SHOULD after
+        container.dispatchEvent(
+          new MouseEvent('mouseout', {
             bubbles: true,
             cancelable: true,
-            relatedTarget: this.disabledButton.current,
+            target: this.disabledButton.current,
+            relatedTarget: this.targetDiv.current,
           }),
         );
+        expect(syntheticMouseEnter.mock.calls.length).toBe(1);
+
+        // this DID WORK and SHOULD work after
         this.disabledButton.current.dispatchEvent(
           new MouseEvent('mouseout', {
             bubbles: true,
@@ -229,19 +232,29 @@ describe('EnterLeaveEventPlugin', () => {
             relatedTarget: this.targetDiv.current,
           }),
         );
-
-        // native mouse event gets triggered only for the native mouseenter
-        expect(nativeMouseEnter.mock.calls.length).toBe(1);
-
-        /**
-         * Why do we expect this to be 2?
-         *
-         * This is a bugfix, so just fixing the bug means leaving usage of
-         * mouseout as Synthetic calculator for mouseenter in place.
-         * A larger discussion should take place over whether a synth event
-         * should be calculated from a different native one.
-         */
         expect(syntheticMouseEnter.mock.calls.length).toBe(2);
+
+        // this DID NOT work before and SHOULD NOT work after
+        // in place to prevent bugs with duplicate events if mouseenter gets processed on its own
+        this.targetDiv.current.dispatchEvent(
+          new MouseEvent('mouseenter', {
+            bubbles: true,
+            cancelable: true,
+            relatedTarget: this.disabledButton.current,
+          }),
+        );
+        expect(syntheticMouseEnter.mock.calls.length).toBe(2);
+
+        // this DID NOT work before and SHOULD work after
+        container.dispatchEvent(
+          new MouseEvent('mouseover', {
+            bubbles: true,
+            cancelable: true,
+            target: this.disabledButton.current,
+            relatedTarget: this.targetDiv.current,
+          }),
+        );
+        expect(syntheticMouseEnter.mock.calls.length).toBe(3);
 
         done();
       }
