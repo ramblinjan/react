@@ -187,7 +187,7 @@ describe('EnterLeaveEventPlugin', () => {
   });
 
   // Test for https://github.com/facebook/react/issues/19419
-  it('should fire synthetic mouseenter when moving from disabled sibling inside a component', done => {
+  fit('should fire synthetic mouseenter when moving from disabled sibling inside a component', done => {
     const syntheticMouseEnter = jest.fn();
 
     class Parent extends React.Component {
@@ -229,6 +229,7 @@ describe('EnterLeaveEventPlugin', () => {
           new MouseEvent('mouseout', {
             bubbles: true,
             cancelable: true,
+            target: this.disabledButton.current,
             relatedTarget: this.targetDiv.current,
           }),
         );
@@ -240,6 +241,7 @@ describe('EnterLeaveEventPlugin', () => {
           new MouseEvent('mouseenter', {
             bubbles: true,
             cancelable: true,
+            target: this.targetDiv.current,
             relatedTarget: this.disabledButton.current,
           }),
         );
@@ -250,8 +252,8 @@ describe('EnterLeaveEventPlugin', () => {
           new MouseEvent('mouseover', {
             bubbles: true,
             cancelable: true,
-            target: this.disabledButton.current,
-            relatedTarget: this.targetDiv.current,
+            target: this.targetDiv.current,
+            relatedTarget: this.disabledButton.current,
           }),
         );
         expect(syntheticMouseEnter.mock.calls.length).toBe(3);
